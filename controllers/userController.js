@@ -7,6 +7,7 @@ class UserController{
 
         this.onSubmit();
         this.onEdit();
+        this.selectAll();
     }
 
     onEdit(){
@@ -15,6 +16,7 @@ class UserController{
         });
 
         this.FormUpdateEl.addEventListener("submit", event=>{
+
             event.preventDefault();
 
             let btn = this.FormUpdateEl.querySelectorAll("[type=submit]");
@@ -23,9 +25,8 @@ class UserController{
 
             let values = this.getValues(this.FormUpdateEl);
 
-            console.log(values);
-
             let index = this.FormUpdateEl.dataset.trIndex;
+
             let tr = this.tableEL.rows[index];
 
             let userOld = JSON.parse(tr.dataset.user);
@@ -41,31 +42,21 @@ class UserController{
                     }else{
                         result._photo = content;
                     }
+                    let user = new User(result);
 
-                    tr.dataset.user = JSON.stringify(result);
+                    user.loadFromJson(result);
 
-                    tr.innerHTML =  `
-        
-                    <td><img src="${result._photo}" alt="User Image" class="img-circle img-sm"></td>
-                    <td>${result._name}</td>
-                    <td>${result._email}</td>
-                    <td>${result._admin}</td>
-                    <td>${utils.dateFormat(result._register)}</td>
-                    <td>
-                        <button type="button" class="btn btn-primary btn-xs btn-edit btn-flat">Editar</button>
-                        <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
-                    </td>
-            
-            `;  
-                    
-                    this.addEventsTr(tr);
+                    user.save();
+
+                    this.getTr(user, tr);
         
                     this.updateCount();
 
-                 this.FormUpdateEl.reset(); 
+                    this.FormUpdateEl.reset(); 
 
-                 this.showPanelCreate(); 
+                     this.showPanelCreate(); 
 
+                     btn.disabled = false;
 
             },
 
@@ -95,7 +86,11 @@ class UserController{
                 (content)=>{
 
                 values.photo = content;
+
+                values.save();
+
                 this.Addline(values);
+
                 this.FormEl.reset(); 
 
             },
@@ -178,7 +173,16 @@ class UserController{
 
     Addline(dataUser){
 
-        var tr  = document.createElement('tr');
+        let tr = this.getTr(dataUser);
+
+        this.tableEL.appendChild(tr);
+
+        this.updateCount();
+    }
+
+    getTr(dataUser, tr = null){
+
+        if(tr === null) tr  = document.createElement('tr');
 
         tr.dataset.user = JSON.stringify(dataUser);
 
@@ -191,19 +195,65 @@ class UserController{
             <td>${utils.dateFormat(dataUser.register)}</td>
             <td>
                 <button type="button" class="btn btn-primary btn-xs btn-edit btn-flat">Editar</button>
-                <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
+                <button type="button" class="btn btn-danger btn-delete btn-xs btn-flat">Excluir</button>
             </td>
     
     `;
 
-        this.addEventsTr(tr);
+    this.addEventsTr(tr);
 
-        this.tableEL.appendChild(tr);
+    return tr;
 
-        this.updateCount();
     }
 
+    getUserStorage(){
+
+        let users = [];
+
+        if(localStorage.getItem("users")){
+            
+            users = JSON.parse(localStorage.getItem("users"));
+            
+        }
+
+        return users;
+
+    }
+
+    selectAll(){
+
+        let users = this.getUserStorage();
+
+        users.forEach(dataUser => {
+
+            let user = new User();
+
+            user.loadFromJson(dataUser);
+
+            this.Addline(user);
+
+        })
+
+    }
+
+    
+
     addEventsTr(tr){
+
+        tr.querySelector(".btn-delete").addEventListener("click", event => {
+            if(confirm("Deseja excluir esta pessoa?")){
+                
+                let user = new User();
+
+                user.loadFromJson(JSON.parse(tr.dataset.user));
+
+                user.remove();
+                
+                tr.remove();
+
+                this.updateCount();
+            }
+        })
 
         tr.querySelector(".btn-edit").addEventListener("click", e=>{
             let json = JSON.parse(tr.dataset.user);
