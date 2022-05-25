@@ -93,11 +93,15 @@ class User {
 
     getNewId(){
 
-        if(!window.id) window.id = 0;
-        
-        window.id++;
+        let userID = parseInt(localStorage.getItem("userID"));
 
-        return window.id;
+        if(!userID) userID = 0;
+        
+        userID++;
+
+        localStorage.setItem("userID", userID);
+
+        return userID;
     }
 
     save(){
